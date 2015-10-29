@@ -5,6 +5,9 @@ require 'shotgun'
 use Rack::Session::Cookie, :key => 'rack.session',
                            :path => '/',
                            :secret => 'some_random_string'
+                           
+BLACKJACK_AMOUNT = 21
+DEALER_HIT_MIN = 17
 
 helpers do
   def calculate_total(cards)
@@ -20,10 +23,14 @@ helpers do
     end
     
     arr.select { |element| element == "A"}.count.times do
-      break if total <=21
+      break if total <=BLACKJACK_AMOUNT
       total -=10
     end
     total
+  end
+  
+  def cover_image(card)
+    "<img src='/images/cards/cover.jpg' class='card image'>"
   end
   
   def card_image(card)
@@ -45,19 +52,22 @@ helpers do
     end
       
      "<img src='/images/cards/#{suit}_#{value}.jpg' class='card_image'>"
-    end
+  end
     
     def winner(msg)
+      @play_again = true
       @hit_or_stay_button = false
       @success = "#{session[:player_name]} wins! #{msg}"
     end
     
     def loser(msg)
+      @play_again = true
       @hit_or_stay_button = false
       @error = "#{session[:player_name]} loses. #{msg}"
     end
     
     def tie(msg)
+      @play_again = true
       @hit_or_stay_button = false
       @success = "#{msg} Its a tie."
     end
@@ -94,6 +104,7 @@ post '/new_player' do
 end
 
 get '/game' do
+  session[:turn] = session[:player_name]
   suits = ['H', 'D', 'S', 'C']
   values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
   session[:deck] = suits.product(values).shuffle!
@@ -112,10 +123,10 @@ post '/game/player/hit' do
   session[:player_cards] << session[:deck].pop
   
   player_total = calculate_total(session[:player_cards])
-  if player_total == 21
-    winner!("session[:player_name] has a total of #{player_total}")
-  elsif player_total >21
-    loser!("#{session[:player_name]} busted.")
+  if player_total == BLACKJACK_AMOUNT
+    winner("session[:player_name] has a total of #{player_total}")
+  elsif player_total >BLACKJACK_AMOUNT
+    loser("#{session[:player_name]} busted.")
   end
   
   erb :game #we want to render the game code here NOT REDIRECT to the game route. if we put redirect '/game' it would start our game over b/c the game route creates a new game, we want this route to display the game.erb code
@@ -128,15 +139,16 @@ post '/game/player/stay' do
 end
 
 get '/game/dealer' do 
+  session[:turn] = "dealer"
   @hit_or_stay_button = false
   
   dealer_total = calculate_total(session[:dealer_cards])
   
-  if dealer_total == 21
-    loser!("Dealer has Blackjack")
-  elsif dealer_total > 21
-    winner!("Dealer busted.")
-  elsif dealer_total >=17
+  if dealer_total == BLACKJACK_AMOUNT
+    loser("Dealer has Blackjack")
+  elsif dealer_total > BLACKJACK_AMOUNT
+    winner("Dealer busted.")
+  elsif dealer_total >=DEALER_HIT_MIN
   redirect '/game/compare'
   else
     @show_dealer_hit_button = true
@@ -145,7 +157,7 @@ get '/game/dealer' do
   erb :game
 end
 
-post '/game_dealer_hit' do 
+post '/game/dealer/hit' do 
   session[:dealer_cards] << session[:deck].pop
   redirect '/game/dealer'
 end
@@ -157,14 +169,18 @@ get '/game/compare' do
   dealer_total = calculate_total(session[:dealer_cards])
   
   if player_total < dealer_total
-    loser!("#{session[:player_name]} stayed at #{player_total}. Dealer stays at #{dealer_total}")
+    loser("#{session[:player_name]} stayed at #{player_total}. Dealer stays at #{dealer_total}")
   elsif player_total > dealer_total
-    winner!("#{session[:player_name]} stayed at #{player_total}. Dealer stays at #{dealer_total}")
+    winner("#{session[:player_name]} stayed at #{player_total}. Dealer stays at #{dealer_total}")
   else
-    tie!("Both players have #{player_total}")
+    tie("Both players have #{player_total}")
   end
   
   erb :game
+end
+
+get '/game_over' do
+  erb :game_over
 end
 
 
