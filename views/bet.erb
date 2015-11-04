@@ -1,0 +1,8 @@
+<h3>Make a bet for this round.</3>
+<p><%=session[:player_name]%> has $<%=session[:player_pot].to_i%></p>
+<form action='/bet' method='post'>
+  <input type="text" name="bet_amount"/> <!-- bet amount can become your key for a params hash like so: params[:bet_amount]-->
+  <br/>
+  <input type="submit" value="Make a Bet." class="btn"/>
+  
+</form>
