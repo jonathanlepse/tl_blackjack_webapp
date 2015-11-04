@@ -59,20 +59,20 @@ helpers do
       @play_again = true
       @hit_or_stay_button = false
       session[:player_pot] += session[:player_bet]
-      @success = "#{session[:player_name]} wins! #{msg}"
+      @winner = "#{session[:player_name]} wins! #{msg}"
     end
     
     def loser(msg)
       @play_again = true
       @hit_or_stay_button = false
       session[:player_pot] -= session[:player_bet]
-      @error = "#{session[:player_name]} loses. #{msg}"
+      @loser = "#{session[:player_name]} loses. #{msg}"
     end
     
     def tie(msg)
       @play_again = true
       @hit_or_stay_button = false
-      @success = "#{msg} Its a tie."
+      @winner = "#{msg} Its a tie."
     end
       
 end
@@ -151,7 +151,7 @@ post '/game/player/hit' do
     loser("#{session[:player_name]} busted.")
   end
   
-  erb :game #we want to render the game code here NOT REDIRECT to the game route. if we put redirect '/game' it would start our game over b/c the game route creates a new game, we want this route to display the game.erb code
+  erb :game, layout:false #we want to render the game code here NOT REDIRECT to the game route. if we put redirect '/game' it would start our game over b/c the game route creates a new game, we want this route to display the game.erb code
 end
 
 post '/game/player/stay' do
@@ -198,7 +198,7 @@ get '/game/compare' do
     tie("Both players have #{player_total}")
   end
   
-  erb :game
+  erb :game, layout:false
 end
 
 get '/game_over' do
