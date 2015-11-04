@@ -8,6 +8,7 @@ use Rack::Session::Cookie, :key => 'rack.session',
                            
 BLACKJACK_AMOUNT = 21
 DEALER_HIT_MIN = 17
+INITIAL_POT_AMOUNT = 500
 
 helpers do
   def calculate_total(cards)
@@ -57,12 +58,14 @@ helpers do
     def winner(msg)
       @play_again = true
       @hit_or_stay_button = false
+      session[:player_pot] += session[:player_bet]
       @success = "#{session[:player_name]} wins! #{msg}"
     end
     
     def loser(msg)
       @play_again = true
       @hit_or_stay_button = false
+      session[:player_pot] -= session[:player_bet]
       @error = "#{session[:player_name]} loses. #{msg}"
     end
     
@@ -87,6 +90,7 @@ get '/' do
 end
 
 get '/new_player' do
+  session[:player_pot] = INITIAL_POT_AMOUNT
   erb :new_player
 end
 
@@ -100,7 +104,25 @@ post '/new_player' do
   end
   
   session[:player_name] = params[:player_name] # your session hash has to match whichever session you want to save the player name to and your params hash must match the code in your erb template
-  redirect '/game'
+  redirect '/bet'
+end
+
+get '/bet' do
+  session[:player_bet] = nil # each time we click play again the bet should be reset to nothing, so we can be again
+  erb :bet
+end  
+
+post '/bet' do
+  if params[:bet_amount].nil? || params[:bet_amount].to_i == 0 # must be to_i here b/c the erb form returns strings by default can't compare an integer to a string VERY IMPORTANT!
+    @error = "Must make a bet"
+    halt erb(:bet) # this is how you make a loop in sinatra.It has a condition that if met throws an error box that halts back to the bet template
+  elsif params[:bet_amount].to_i > session[:player_pot] # :bet_amount needs a to_i attached b/c the form is setting this amount so it will be a string, but :player_pot is set by me in this file not the erb form so I already know its an integer
+    @error = "You do not have sufficient funds to make this bet. You only have $#{session[:player_pot]}"
+    halt erb(:bet)
+  else
+    session[:player_bet] = params[:bet_amount].to_i
+    redirect '/game'
+  end
 end
 
 get '/game' do
