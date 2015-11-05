@@ -1,6 +1,6 @@
 #require 'rubygems' dont think i need this for cloud 9
 require 'sinatra'
-require 'shotgun'
+
 
 use Rack::Session::Cookie, :key => 'rack.session',
                            :path => '/',
